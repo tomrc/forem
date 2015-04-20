@@ -55,7 +55,7 @@ module Forem
       authorize! :create_topic, @forum
       @topic = @forum.topics.build
       @topic.posts.build
-      @tags = ForemTag.all
+      # @tags = Forem::Tag.all # not used
       @new_id = DateTime.now.strftime('%Q')
     end
 
@@ -63,7 +63,7 @@ module Forem
       authorize! :create_topic, @forum
       @topic = @forum.topics.build(topic_params)
       @topic.user = forem_user
-      @topic.tags = topic_params[:tags].reject!(&:empty?)
+      @topic.tags = Forem::Tag.where('id IN (?)', params[:topic][:tags].reject!(&:empty?))
       if @topic.save
         create_successful
       else
@@ -120,7 +120,8 @@ module Forem
     protected
 
     def topic_params
-      params.require(:topic).permit(:subject, tags: [], :posts_attributes => [[:text]])
+      # params.require(:topic).permit(:subject, tags: [], :posts_attributes => [[:text]])
+      params.require(:topic).permit(:subject, :posts_attributes => [[:text]])
     end
 
     def create_successful

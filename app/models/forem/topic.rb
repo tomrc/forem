@@ -27,6 +27,8 @@ module Forem
     belongs_to :forem_user, :class_name => Forem.user_class.to_s, :foreign_key => :user_id
     has_many   :subscriptions, :dependent => :destroy
     has_many   :posts, -> { order "forem_posts.created_at ASC"}, :dependent => :destroy
+    has_many   :topic_tags
+    has_many   :tags, through: :topic_tags
     accepts_nested_attributes_for :posts
 
     validates :subject, :presence => true, :length => { maximum: 255 }
@@ -43,18 +45,18 @@ module Forem
 
       def by_pinned
         order('forem_topics.pinned DESC').
-        order('forem_topics.id')
+          order('forem_topics.id')
       end
 
       def by_most_recent_post
         order('forem_topics.last_post_at DESC').
-        order('forem_topics.id')
+          order('forem_topics.id')
       end
 
       def by_pinned_or_most_recent_post
-	order('forem_topics.pinned DESC').
-        order('forem_topics.last_post_at DESC').
-        order('forem_topics.id')
+        order('forem_topics.pinned DESC').
+          order('forem_topics.last_post_at DESC').
+          order('forem_topics.id')
       end
 
       def pending_review
@@ -68,8 +70,8 @@ module Forem
       def approved_or_pending_review_for(user)
         if user
           where("forem_topics.state = ? OR " +
-                "(forem_topics.state = ? AND forem_topics.user_id = ?)",
-                 'approved', 'pending_review', user.id)
+            "(forem_topics.state = ? AND forem_topics.user_id = ?)",
+            'approved', 'pending_review', user.id)
         else
           approved
         end
