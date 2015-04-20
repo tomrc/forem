@@ -30,6 +30,8 @@ module Forem
 
     delegate :forum, :to => :topic
 
+    scope :editable, -> { where("updated_at > ?", DateTime.now - 2.minutes) }
+
     after_create :set_topic_last_post_at
     after_create :subscribe_replier, :if => :user_auto_subscribe?
     after_create :skip_pending_review
@@ -86,6 +88,18 @@ module Forem
       user == other_user || other_user.forem_admin?
     end
 
+    def is_editable?
+      updated_at > DateTime.now - 2.minutes
+    end
+
+    def is_updateable?
+      updated_at > DateTime.now - 5.minutes
+    end
+
+    def time_left_for_edit_delete
+      (updated_at + 2.minutes).to_i - DateTime.now.to_i
+    end
+
     protected
 
     def subscribe_replier
@@ -103,7 +117,8 @@ module Forem
 
     def email_topic_subscribers
       topic.subscriptions.includes(:subscriber).find_each do |subscription|
-        subscription.send_notification(id) if subscription.subscriber != user
+      subscription.send_notification(id) if subscription.subscriber != user && subscription.subscriber.public_cs_notification == true
+
       end
       update_column(:notified, true)
     end
