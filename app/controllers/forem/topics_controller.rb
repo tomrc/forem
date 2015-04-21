@@ -108,8 +108,8 @@ module Forem
     end
 
     # def search_panel
-    #   tags_id = ForemTag.all.map { |element| element.id }
-    #   tags_title = ForemTag.all.map { |element| element.tag }
+    #   tags_id = Forem::Tag.all.map { |element| element.id }
+    #   tags_title = Forem::Tag.all.map { |element| element.tag }
     #   @tags_hash = Hash[tags_id.zip(tags_title.map {|i| i.include?(',') ? (i.split /, /) : i})]
     # end
 

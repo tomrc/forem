@@ -17,8 +17,8 @@ module Forem
         'type' => 'View Coffee Shop',
         'properties' => {
       })
-      tags_id = ForemTag.all.map { |element| element.id }
-      tags_title = ForemTag.all.map { |element| element.tag }
+      tags_id = Forem::Tag.all.map { |element| element.id }
+      tags_title = Forem::Tag.all.map { |element| element.tag }
       @tags_hash = Hash[tags_id.zip(tags_title.map {|i| i.include?(',') ? (i.split(/, /)) : i})]
       @tag = params[:tag] ? params[:tag].downcase : params[:tag]
       authorize! :show, @forum
@@ -53,7 +53,7 @@ module Forem
             else
               matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
 
-              array_of_tags_id = ForemTag.where('lower(tag) LIKE ?', "%#{@search}%").pluck(:id)
+              array_of_tags_id = Forem::Tag.where('lower(tag) LIKE ?', "%#{@search}%").pluck(:id)
               @collection = []
               array_of_tags_id.each do |a|
                 @collection += Forem::Topic.where('? = ANY (tags)', a.to_s)
