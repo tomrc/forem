@@ -20,7 +20,6 @@ module Forem
       tags_id = Forem::Tag.all.map { |element| element.id }
       tags_title = Forem::Tag.all.map { |element| element.tag }
       @tags_hash = Hash[tags_id.zip(tags_title.map {|i| i.include?(',') ? (i.split(/, /)) : i})]
-      @tag = params[:tag] ? params[:tag].downcase : params[:tag]
       authorize! :show, @forum
       register_view
 
@@ -46,17 +45,17 @@ module Forem
             end
           end
         else
-          # TODO: optimize this
           if @sort == 'search'
-            if !@tag.nil?
-              @collection = Forem::Topic.where('? = ANY (tags)', @tag)
+            if params[:tag].present?
+              tag = Forem::Tag.find_by_tag(params[:tag])
+              @collection = Forem::TopicTag.includes(:topic).where(tag_id: tag.id).map(&:topic)
             else
               matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
 
               array_of_tags_id = Forem::Tag.where('lower(tag) LIKE ?', "%#{@search}%").pluck(:id)
               @collection = []
               array_of_tags_id.each do |a|
-                @collection += Forem::Topic.where('? = ANY (tags)', a.to_s)
+                @collection += Forem::TopicTag.includes(:topic).where('tag_id IN (?)', array_of_tags_id).map(&:topic)
               end
               @collection += Forem::Topic.where('lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", matched_users_ids)
               @collection = @collection.uniq
