@@ -17,9 +17,6 @@ module Forem
         'type' => 'View Coffee Shop',
         'properties' => {
       })
-      tags_id = Forem::Tag.all.map { |element| element.id }
-      tags_title = Forem::Tag.all.map { |element| element.tag }
-      @tags_hash = Hash[tags_id.zip(tags_title.map {|i| i.include?(',') ? (i.split(/, /)) : i})]
       authorize! :show, @forum
       register_view
 
@@ -48,21 +45,31 @@ module Forem
           if @sort == 'search'
             if params[:tag].present?
               tag = Forem::Tag.find_by_tag(params[:tag])
-              @collection = Forem::TopicTag.includes(:topic).where(tag_id: tag.id).map(&:topic)
+              @collection = Forem::Topic.joins(:topic_tags).where('forem_topic_tags.tag_id = ?', tag.id)
             else
               matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
 
-              array_of_tags_id = Forem::Tag.where('lower(tag) LIKE ?', "%#{@search}%").pluck(:id)
-              @collection = []
-              array_of_tags_id.each do |a|
-                @collection += Forem::TopicTag.includes(:topic).where('tag_id IN (?)', array_of_tags_id).map(&:topic)
-              end
-              @collection += Forem::Topic.where('lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", matched_users_ids)
-              @collection = @collection.uniq
+              @collection = Forem::Topic
+                          .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
+                          .joins('LEFT OUTER JOIN forem_tags ON forem_topic_tags.tag_id = forem_tags.id')
+                          .where('lower(forem_tags.tag) LIKE ? OR lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", "%#{@search}%", matched_users_ids)
+
             end
             @is_public_search = true
           else
-            @collection = Forem::Topic.all.by_most_recent_post
+            tag = Forem::Tag.find_by_tag('New site feedback')
+            # @collection = Forem::Topic
+            #               .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
+            #               .where.not('forem_topic_tags.tag_id = ?', tag.id)
+            #               .by_most_recent_post
+            if tag.present?
+              @collection = Forem::Topic
+                            .where('forem_topics.id NOT IN (?)', Forem::TopicTag.select(:topic_id)
+                              .where('forem_topic_tags.tag_id = ?', tag.id) )
+                            .by_most_recent_post
+            else
+              @collection = Forem::Topic.by_most_recent_post
+            end
           end
         end
         # Kaminari allows to configure the method and param used
@@ -85,9 +92,7 @@ module Forem
       @sort = params[:sort]
       if @sort == 'popular'
         #@collection = Forem::Topic.all.order(views_count: :desc)
-        @collection = Forem::Topic.all
-        @collection = @collection.sort_by {|obj| obj.views_table.inject(:+)}
-        @collection.reverse!
+        @collection = Forem::Topic.all.sort_by {|obj| obj.views_table.inject(:+)}.reverse!
       elsif @sort == 'following'
         @collection = Forem::Topic.where(id: Forem::Subscription.where(:subscriber_id => current_user).pluck(:topic_id))
       else
