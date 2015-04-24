@@ -20,6 +20,12 @@ module Forem
       authorize! :show, @forum
       register_view
 
+      if can? :create_topic, @forum
+        @topic = @forum.topics.build
+        @topic.posts.build
+        @new_id = DateTime.now.strftime('%Q')
+      end
+
       if current_user
         mailbox = current_user.mailbox
         @key = params[:key]
@@ -57,7 +63,7 @@ module Forem
             end
             @is_public_search = true
           else
-            tag = Forem::Tag.find_by_tag('New site feedback')
+            tag = Forem::Tag.find_by_tag('Site Feedback')
             # @collection = Forem::Topic
             #               .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
             #               .where.not('forem_topic_tags.tag_id = ?', tag.id)

@@ -135,12 +135,18 @@ module Forem
         created_at: Time.now.to_i,
         user_id: current_user.id
       )
-      redirect_to [@forum, @topic], :notice => t("forem.topic.created")
+      respond_to do |format|
+        format.html { redirect_to [@forum, @topic], :notice => t("forem.topic.created") }
+        format.js { render js: "window.location = '#{forem.forum_topic_path(@forum, @topic)}';" }
+      end
     end
 
     def create_unsuccessful
       flash.now.alert = t('forem.topic.not_created')
-      render :action => 'new'
+      respond_to do |format|
+        format.html { render :action => 'new' }
+        format.js { render 'create' }
+      end
     end
 
     def destroy_successful
