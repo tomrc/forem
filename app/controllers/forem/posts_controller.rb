@@ -71,9 +71,12 @@ module Forem
       @deleted_id = @post.id
       topic = @post.topic
       forum = @post.forum
-      if params[:first_post].present?
+      if @post.id == topic.posts.first.id
         @post.topic.destroy
-        redirect_to [forum], :notice => 'Topic has been deleted.'
+        flash[:notice] = 'Topic has been deleted.'
+        respond_to do |format|
+          format.js { render js: "window.location = '#{main_app.forum_path('coffee-shop')}';" }
+        end
       else
         @post.replies.each do |r|
           puts r.id
