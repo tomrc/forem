@@ -51,14 +51,17 @@ module Forem
           if @sort == 'search'
             if params[:tag].present?
               tag = Forem::Tag.find_by_tag(params[:tag])
-              @collection = Forem::Topic.joins(:topic_tags).where('forem_topic_tags.tag_id = ?', tag.id)
+              @collection = Forem::Topic.joins(:topic_tags)
+                            .where('forem_topic_tags.tag_id = ?', tag.id)
+                            .by_most_recent_post
             else
               matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
 
               @collection = Forem::Topic.uniq
-                          .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
-                          .joins('LEFT OUTER JOIN forem_tags ON forem_topic_tags.tag_id = forem_tags.id')
-                          .where('lower(forem_tags.tag) LIKE ? OR lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", "%#{@search}%", matched_users_ids)
+                            .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
+                            .joins('LEFT OUTER JOIN forem_tags ON forem_topic_tags.tag_id = forem_tags.id')
+                            .where('lower(forem_tags.tag) LIKE ? OR lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", "%#{@search}%", matched_users_ids)
+                            .by_most_recent_post
 
             end
             @is_public_search = true
