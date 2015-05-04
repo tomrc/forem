@@ -34,6 +34,12 @@ module Forem
     validates :subject, :presence => true, :length => { maximum: 255 }
     validates :user, :presence => true
 
+    validate :has_tags
+
+    def has_tags
+      errors.add(:tags, 'Must add at least one tag') if self.tags.blank?
+    end
+
     before_save  :set_first_post_user
     after_create :subscribe_poster
     after_create :skip_pending_review, :unless => :moderated?
