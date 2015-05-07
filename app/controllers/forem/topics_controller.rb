@@ -10,6 +10,7 @@ module Forem
     def show
       @created = true if params[:created].present?
       @sort = params[:sort]
+      @tag = params[:tag]
       if find_topic
         register_view(@topic, forem_user)
         increment_views_table(@topic)

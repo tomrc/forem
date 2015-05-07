@@ -50,9 +50,9 @@ module Forem
         else
           if @sort == 'search'
             if params[:tag].present?
-              tag = Forem::Tag.find_by_tag(params[:tag])
+              @tag = Forem::Tag.find_by_tag(params[:tag])
               @collection = Forem::Topic.joins(:topic_tags)
-                            .where('forem_topic_tags.tag_id = ?', tag.id)
+                            .where('forem_topic_tags.tag_id = ?', @tag.id)
                             .by_most_recent_post
             else
               matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
