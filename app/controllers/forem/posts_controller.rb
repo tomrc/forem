@@ -161,8 +161,7 @@ module Forem
     end
 
     def send_email_notifications
-      SubscriptionMailer.delay.test_mail
-      SubscriptionMailer.test_mail.deliver
+      SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id)
       #TODO: mail to reply
     end
   end
