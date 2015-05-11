@@ -9,7 +9,7 @@ module Forem
     before_filter :find_post_for_topic, :only => [:show, :edit, :update, :destroy]
     before_filter :ensure_post_ownership!, :only => [:destroy]
     before_filter :authorize_destroy_post_for_forum!, :only => [:destroy]
-
+    #skip_before_filter  :verify_authenticity_token
     def show
       page = (@topic.posts.count.to_f / Forem.per_page.to_f).ceil
       redirect_to forum_topic_url(@topic.forum, @topic, pagination_param => page, anchor: "post-#{@post.id}")
@@ -40,6 +40,17 @@ module Forem
           block_spammers
           @new_post = @topic.posts.build
           find_reply_to_post
+          # MixpanelDelay.new.track_app_event(
+          #     'id' => current_user.id,
+          #     'type' => 'Create Post',
+          #     'properties' => {
+          #     })
+          # Intercom::Event.delay.create(
+          #     event_name: 'create-post',
+          #     created_at: Time.now.to_i,
+          #     user_id: current_user.id
+          # )
+          send_email_notifications
           format.js
         else
           format.js {render 'create_empty'}
@@ -79,7 +90,6 @@ module Forem
         end
       else
         @post.replies.each do |r|
-          puts r.id
           r.destroy
         end
         @post.destroy
@@ -116,48 +126,6 @@ module Forem
       authorize! :destroy_post, @topic.forum
     end
 
-    def create_successful
-      MixpanelDelay.new.track_app_event(
-        'id' => current_user.id,
-        'type' => 'Create Post',
-        'properties' => {
-      })
-      Intercom::Event.delay.create(
-        event_name: 'create-post',
-        created_at: Time.now.to_i,
-        user_id: current_user.i
-      )
-      flash[:notice] = t("forem.post.created")
-      redirect_to forum_topic_path(@topic.forum, @topic, pagination_param => @topic.last_page, created: 't')
-    end
-
-    def create_failed
-      respond_to do |format|
-        #format.html {}
-        format.js {}
-      end
-    end
-
-    def destroy_successful
-      if @post.topic.posts.count == 0
-        @post.topic.destroy
-        flash[:notice] = t("forem.post.deleted_with_topic")
-        redirect_to [@topic.forum]
-      else
-        flash[:notice] = t("forem.post.deleted")
-        redirect_to [@topic.forum, @topic]
-      end
-    end
-
-    def update_successful
-      redirect_to [@topic.forum, @topic], :notice => t('edited', :scope => 'forem.post')
-    end
-
-    def update_failed
-      flash.now.alert = t("forem.post.not_edited")
-      render :action => "edit"
-    end
-
     def ensure_post_ownership!
       unless @post.owner_or_admin? forem_user
         flash[:alert] = t("forem.post.cannot_delete")
@@ -190,6 +158,12 @@ module Forem
 
     def find_reply_to_post
       @reply_to_post = @topic.posts.find_by_id(params[:reply_to_id])
+    end
+
+    def send_email_notifications
+      SubscriptionMailer.delay.test_mail
+      SubscriptionMailer.test_mail.deliver
+      #TODO: mail to reply
     end
   end
 end
