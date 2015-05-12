@@ -9,7 +9,6 @@ module Forem
     before_filter :find_post_for_topic, :only => [:show, :edit, :update, :destroy]
     before_filter :ensure_post_ownership!, :only => [:destroy]
     before_filter :authorize_destroy_post_for_forum!, :only => [:destroy]
-    #skip_before_filter  :verify_authenticity_token
     def show
       page = (@topic.posts.count.to_f / Forem.per_page.to_f).ceil
       redirect_to forum_topic_url(@topic.forum, @topic, pagination_param => page, anchor: "post-#{@post.id}")
@@ -161,13 +160,12 @@ module Forem
     end
 
     def send_email_notifications
-      #SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id)
-      SubscriptionMailer.topic_reply(@post.id, @post.user.id).deliver
+      SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id) if @post.user != current_user && @post.user.reply_email_notification_for_cs
       unless @id.nil?
-        user_id = Post.find(@id).user.id
-        #SubscriptionMailer.delay.comment_reply(@id, user_id)
+        user = Post.find(@id).user
+        SubscriptionMailer.delay.comment_reply(@id, user.id) if user != current_user && user.reply_email_notification_for_cs
       end
-      #TODO: mail to reply
     end
+
   end
 end
