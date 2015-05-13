@@ -31,6 +31,7 @@ module Forem
     delegate :forum, :to => :topic
 
     scope :editable, -> { where("updated_at > ?", DateTime.now - 2.minutes) }
+    scope :from_last_day, -> { where("created_at > ?", DateTime.now - 1.day)}
 
     after_create :set_topic_last_post_at
     after_create :subscribe_replier, :if => :user_auto_subscribe?
