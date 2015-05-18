@@ -39,16 +39,16 @@ module Forem
           block_spammers
           @new_post = @topic.posts.build
           find_reply_to_post
-          # MixpanelDelay.new.track_app_event(
-          #     'id' => current_user.id,
-          #     'type' => 'Create Post',
-          #     'properties' => {
-          #     })
-          # Intercom::Event.delay.create(
-          #     event_name: 'create-post',
-          #     created_at: Time.now.to_i,
-          #     user_id: current_user.id
-          # )
+          MixpanelDelay.new.track_app_event(
+              'id' => current_user.id,
+              'type' => 'Create Post',
+              'properties' => {
+              })
+          Intercom::Event.delay.create(
+              event_name: 'create-post',
+              created_at: Time.now.to_i,
+              user_id: current_user.id
+          )
           send_email_notifications
           format.js
         else
