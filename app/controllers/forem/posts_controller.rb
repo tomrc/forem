@@ -39,16 +39,16 @@ module Forem
           block_spammers
           @new_post = @topic.posts.build
           find_reply_to_post
-          MixpanelDelay.new.track_app_event(
-              'id' => current_user.id,
-              'type' => 'Create Post',
-              'properties' => {
-              })
-          Intercom::Event.delay.create(
-              event_name: 'create-post',
-              created_at: Time.now.to_i,
-              user_id: current_user.id
-          )
+          # MixpanelDelay.new.track_app_event(
+          #     'id' => current_user.id,
+          #     'type' => 'Create Post',
+          #     'properties' => {
+          #     })
+          # Intercom::Event.delay.create(
+          #     event_name: 'create-post',
+          #     created_at: Time.now.to_i,
+          #     user_id: current_user.id
+          # )
           send_email_notifications
           format.js
         else
@@ -160,7 +160,8 @@ module Forem
     end
 
     def send_email_notifications
-      SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id) if @post.user != current_user && @post.user.reply_email_notification_for_cs
+      SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id) if @post.topic.user != current_user && @post.topic.user.reply_email_notification_for_cs
+                      
       unless @id.nil?
         user = Post.find(@id).user
         SubscriptionMailer.delay.comment_reply(@id, user.id) if user != current_user && user.reply_email_notification_for_cs
