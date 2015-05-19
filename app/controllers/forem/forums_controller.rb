@@ -66,15 +66,15 @@ module Forem
             end
             @is_public_search = true
           else
-            tag = Forem::Tag.find_by_tag('Site Feedback')
+            tags = Forem::Tag.where(hidden: true).pluck(:id)
             # @collection = Forem::Topic
             #               .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
             #               .where.not('forem_topic_tags.tag_id = ?', tag.id)
             #               .by_most_recent_post
-            if tag.present?
+            if tags.present?
               @collection = Forem::Topic
                             .where('forem_topics.id NOT IN (?)', Forem::TopicTag.select(:topic_id)
-                              .where('forem_topic_tags.tag_id = ?', tag.id) )
+                              .where('forem_topic_tags.tag_id IN (?)', tags) )
                             .by_most_recent_post
             else
               @collection = Forem::Topic.by_most_recent_post
