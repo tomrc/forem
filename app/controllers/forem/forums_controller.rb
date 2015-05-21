@@ -33,6 +33,7 @@ module Forem
         @sort = params[:sort]
         @search = params[:search] ? params[:search].downcase : params[:search]
         @is_public_search = false
+
         if @key == 'private'
           if @container == 'trash'
             @collection = mailbox.trash
@@ -47,6 +48,9 @@ module Forem
               end
             end
           end
+          declined = current_user.buddy_connections.where(status: BuddyConnection.statuses[:declined]).pluck(:conversation_id)
+          @collection = @collection.where('mailboxer_conversations.id NOT IN (?)', declined) if declined.present?
+
         else
           if @sort == 'search'
             if params[:tag].present?
