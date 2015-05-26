@@ -105,7 +105,8 @@ module Forem
       @sort = params[:sort]
       if @sort == 'popular'
         #@collection = Forem::Topic.all.order(views_count: :desc)
-        @collection = Forem::Topic.all.sort_by {|obj| obj.views_table.inject(:+)}.reverse!
+        @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
+                      .order('views_sum DESC')
       elsif @sort == 'following'
         @collection = Forem::Topic.where(id: Forem::Subscription.where(:subscriber_id => current_user).pluck(:topic_id))
       else
