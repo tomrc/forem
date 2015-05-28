@@ -107,11 +107,13 @@ module Forem
       @sort = params[:sort]
       if @sort == 'popular'
         @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
+                      .where('TRUE = TRUE')
                       .order('views_sum DESC')
       elsif @sort == 'following'
-        @collection = Forem::Topic.where(id: Forem::Subscription.where(:subscriber_id => current_user).pluck(:topic_id))
+        @collection = Forem::Topic.where(id: Forem::Subscription.where(subscriber_id: current_user).pluck(:topic_id))
+                      .by_most_recent_post
       else
-        @collection = Forem::Topic.by_most_recent_post
+        @collection = Forem::Topic.where('TRUE = TRUE').by_most_recent_post
       end
       @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
     end
