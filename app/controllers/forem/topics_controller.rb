@@ -14,11 +14,11 @@ module Forem
       if find_topic
         register_view(@topic, forem_user)
         increment_views_table(@topic)
-              MixpanelDelay.new.track_app_event(
-        'id' => current_user.id,
-        'type' => 'View Topic',
-        'properties' => {
-      })
+        MixpanelDelay.new.track_app_event(
+          'id' => current_user.id,
+          'type' => 'View Topic',
+          'properties' => {
+        })
         @posts = find_posts(@topic)
         # Kaminari allows to configure the method and param used
         @posts = @posts.send(pagination_method, params[pagination_param]).per(Forem.per_page)
@@ -179,7 +179,7 @@ module Forem
     end
 
     def find_posts(topic)
-      posts = topic.posts
+      posts = topic.posts.includes(:forem_user, :replies)
       unless forem_admin_or_moderator?(topic.forum)
         posts = posts.approved_or_pending_review_for(forem_user)
       end

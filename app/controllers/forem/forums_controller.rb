@@ -76,21 +76,22 @@ module Forem
             #               .where.not('forem_topic_tags.tag_id = ?', tag.id)
             #               .by_most_recent_post
             if tags.present?
-              @collection = Forem::Topic
-                            .where('forem_topics.id NOT IN (?)', Forem::TopicTag.select(:topic_id)
-                              .where('forem_topic_tags.tag_id IN (?)', tags) )
+              @collection = Forem::Topic.where('forem_topics.id NOT IN (?)',
+                                               Forem::TopicTag.select(:topic_id)
+                                               .where('forem_topic_tags.tag_id IN (?)', tags) )
                             .by_most_recent_post
             else
               @collection = Forem::Topic.by_most_recent_post
             end
           end
+          # Kaminari allows to configure the method and param used
+          @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
         end
-        # Kaminari allows to configure the method and param used
-        #@topics = @topics.send(pagination_method, params[pagination_param]).per(Forem.per_page)
 
         respond_to do |format|
           format.html
           format.atom { render :layout => false }
+          format.js
         end
       else
         redirect_to main_app.new_user_session_path
@@ -102,16 +103,17 @@ module Forem
     end
 
     def sort_by
+      @forum = Forem::Forum.first
       @sort = params[:sort]
       if @sort == 'popular'
-        #@collection = Forem::Topic.all.order(views_count: :desc)
         @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
                       .order('views_sum DESC')
       elsif @sort == 'following'
         @collection = Forem::Topic.where(id: Forem::Subscription.where(:subscriber_id => current_user).pluck(:topic_id))
       else
-        @collection = Forem::Topic.all.by_most_recent_post
+        @collection = Forem::Topic.by_most_recent_post
       end
+      @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
     end
 
     private
