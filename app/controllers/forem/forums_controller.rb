@@ -68,6 +68,7 @@ module Forem
                             .by_most_recent_post
 
             end
+            @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
             @is_public_search = true
           else
             tags = Forem::Tag.where(hidden: true).pluck(:id)
