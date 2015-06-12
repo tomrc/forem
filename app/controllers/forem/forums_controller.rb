@@ -19,6 +19,11 @@ module Forem
       })
       authorize! :show, @forum
       register_view
+      @key = params[:key]
+      @sort = params[:sort]
+      @search = params[:search] ? params[:search].downcase : params[:search]
+      @is_public_search = false
+      @subscribed_topics_ids = Forem::Subscription.where(subscriber_id: current_user).pluck(:topic_id)
 
       if can? :create_topic, @forum
         @topic = @forum.topics.build
@@ -26,76 +31,42 @@ module Forem
         @new_id = DateTime.now.strftime('%Q')
       end
 
-      if current_user
-        mailbox = current_user.mailbox
-        @key = params[:key]
-        @container = params[:container]
-        @sort = params[:sort]
-        @search = params[:search] ? params[:search].downcase : params[:search]
-        @is_public_search = false
-
-        if @key == 'private'
-          if @container == 'trash'
-            @collection = mailbox.trash
-          else
-            if @sort == 'unread'
-              @collection = mailbox.conversations.reorder(id: :asc).where("mailboxer_receipts.trashed = FALSE").where("mailboxer_receipts.is_read = FALSE")
-            else
-              if @container == 'trash'
-                @collection = mailbox.trash
-              else
-                @collection = mailbox.conversations.where("mailboxer_receipts.trashed = FALSE")
-              end
-            end
-          end
-          declined = current_user.buddy_connections.where(status: BuddyConnection.statuses[:declined]).pluck(:conversation_id)
-          @collection = @collection.where('mailboxer_conversations.id NOT IN (?)', declined) if declined.present?
-
+      if @sort == 'search'
+        if params[:tag].present?
+          @tag = Forem::Tag.find_by_tag(params[:tag])
+          @collection = Forem::Topic.joins(:topic_tags)
+                        .where('forem_topic_tags.tag_id = ?', @tag.id)
+                        .by_most_recent_post
         else
-          if @sort == 'search'
-            if params[:tag].present?
-              @tag = Forem::Tag.find_by_tag(params[:tag])
-              @collection = Forem::Topic.joins(:topic_tags)
-                            .where('forem_topic_tags.tag_id = ?', @tag.id)
-                            .by_most_recent_post
-            else
-              matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
+          matched_users_ids = User.where('user_name LIKE ?', "%#{@search}%").pluck(:id)
 
-              @collection = Forem::Topic.uniq
-                            .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
-                            .joins('LEFT OUTER JOIN forem_tags ON forem_topic_tags.tag_id = forem_tags.id')
-                            .where('lower(forem_tags.tag) LIKE ? OR lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", "%#{@search}%", matched_users_ids)
-                            .by_most_recent_post
+          @collection = Forem::Topic.uniq
+                        .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
+                        .joins('LEFT OUTER JOIN forem_tags ON forem_topic_tags.tag_id = forem_tags.id')
+                        .where('lower(forem_tags.tag) LIKE ? OR lower(subject) LIKE ? OR user_id IN (?)', "%#{@search}%", "%#{@search}%", matched_users_ids)
+                        .by_most_recent_post
 
-            end
-            @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
-            @is_public_search = true
-          else
-            tags = Forem::Tag.where(hidden: true).pluck(:id)
-            # @collection = Forem::Topic
-            #               .joins('LEFT OUTER JOIN forem_topic_tags ON forem_topic_tags.topic_id = forem_topics.id')
-            #               .where.not('forem_topic_tags.tag_id = ?', tag.id)
-            #               .by_most_recent_post
-            if tags.present?
-              @collection = Forem::Topic.where('forem_topics.id NOT IN (?)',
-                                               Forem::TopicTag.select(:topic_id)
-                                               .where('forem_topic_tags.tag_id IN (?)', tags) )
-                            .by_most_recent_post
-            else
-              @collection = Forem::Topic.by_most_recent_post
-            end
-          end
-          # Kaminari allows to configure the method and param used
-          @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
         end
-
-        respond_to do |format|
-          format.html
-          format.atom { render :layout => false }
-          format.js
-        end
+        @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
+        @is_public_search = true
       else
-        redirect_to main_app.new_user_session_path
+        tags = Forem::Tag.where(hidden: true).pluck(:id)
+        if tags.present?
+          @collection = Forem::Topic.where('forem_topics.id NOT IN (?)',
+                                           Forem::TopicTag.select(:topic_id)
+                                           .where('forem_topic_tags.tag_id IN (?)', tags) )
+                        .by_most_recent_post
+        else
+          @collection = Forem::Topic.by_most_recent_post
+        end
+      end
+      @collection = @collection.includes(last_post: [:forem_user])
+      @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
+
+      respond_to do |format|
+        format.html
+        format.atom { render :layout => false }
+        format.js
       end
     end
 

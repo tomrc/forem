@@ -29,6 +29,8 @@ module Forem
     has_many   :posts, -> { order "forem_posts.created_at ASC"}, :dependent => :destroy
     has_many   :topic_tags
     has_many   :tags, through: :topic_tags
+    # has_one    :last_post, :class_name => 'Forem::Post', :conditions => { :ordinal => 1 }
+    has_one    :last_post, order: 'created_at DESC', class_name: 'Forem::Post'
     accepts_nested_attributes_for :posts
 
     validates :subject, :presence => true, :length => { maximum: 255 }
