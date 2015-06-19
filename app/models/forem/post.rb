@@ -22,7 +22,8 @@ module Forem
     belongs_to :forem_user, :class_name => Forem.user_class.to_s, :foreign_key => :user_id
     belongs_to :reply_to, :class_name => "Post"
 
-    has_many :replies, :class_name  => "Post",
+    has_many :replies, -> { order(created_at: :asc) },
+                       :class_name  => "Post",
                        :foreign_key => "reply_to_id",
                        :dependent   => :nullify
 
