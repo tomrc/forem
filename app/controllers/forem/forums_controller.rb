@@ -12,6 +12,8 @@ module Forem
     end
 
     def show
+      redirect_to main_app.private_path('coffee-shop') and return if params[:key] && params[:key] == 'private'
+
       MixpanelDelay.new.track_app_event(
         'id' => current_user.id,
         'type' => 'View Coffee Shop',
@@ -19,7 +21,6 @@ module Forem
       })
       authorize! :show, @forum
       register_view
-      @key = params[:key]
       @sort = params[:sort]
       @search = params[:search] ? params[:search].downcase : params[:search]
       @is_public_search = false
