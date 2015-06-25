@@ -30,6 +30,7 @@ module Forem
       @post = @topic.posts.build(post_params)
       @post.user = forem_user
       @id = params[:post][:reply_to_id]
+      @post.text.gsub!(/(<br \/>\s*)*$/, '')
       respond_to do |format|
         if @post.save
           if params[:subscribe]
