@@ -12,6 +12,7 @@ module Forem
       @sort = params[:sort]
       @tag = params[:tag]
       if find_topic
+        @page_title = @topic.subject + ' | Rosemary Conley'
         register_view(@topic, forem_user)
         increment_views_table(@topic)
         MixpanelDelay.new.track_app_event(
@@ -215,5 +216,6 @@ module Forem
         forum.topics.visible.approved_or_pending_review_for(user)
       end
     end
+
   end
 end

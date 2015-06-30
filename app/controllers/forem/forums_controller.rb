@@ -3,6 +3,7 @@ module Forem
   class ForumsController < Forem::ApplicationController
     load_and_authorize_resource :class => 'Forem::Forum', :only => :show
     before_filter :authenticate_user!
+    before_action :set_page_title
 
     helper 'forem/topics'
     include ForumCommon
@@ -94,6 +95,10 @@ module Forem
     private
     def register_view
       @forum.register_view_by(forem_user)
+    end
+
+    def set_page_title
+      @page_title = 'Coffee shop | Rosemary Conley'
     end
   end
 end
