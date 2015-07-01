@@ -78,15 +78,55 @@ module Forem
     def sort_by
       @forum = Forem::Forum.first
       @sort = params[:sort]
-      if @sort == 'popular'
-        @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
-                      .where('TRUE = TRUE')
-                      .order('views_sum DESC')
-      elsif @sort == 'following'
-        @collection = Forem::Topic.where(id: Forem::Subscription.where(subscriber_id: current_user).pluck(:topic_id))
-                      .by_most_recent_post
+      tags = Forem::Tag.where(hidden: true).pluck(:id)
+      #if tag selected
+      if params[:tag].present?
+        @tag = Forem::Tag.find(params[:tag])
+        if @sort == 'popular'
+          @collection = Forem::Topic.joins(:topic_tags)
+          .select('*, forem_topics.id, (SELECT SUM(s) FROM UNNEST(forem_topics.views_table) s) as views_sum')
+          .where('forem_topic_tags.tag_id = ?', @tag.id)
+          .order('views_sum DESC')
+          
+        elsif @sort == 'following'
+          @collection = Forem::Topic.joins(:topic_tags)
+          .where('forem_topic_tags.tag_id = ?', @tag.id)
+          .where(id: Forem::Subscription.where(subscriber_id: current_user).pluck(:topic_id))
+          .by_most_recent_post
+          
+        else
+          @collection = Forem::Topic.joins(:topic_tags)
+          .where('forem_topic_tags.tag_id = ?', @tag.id)
+          .by_most_recent_post
+          
+        end
+      #no tag selected  
       else
-        @collection = Forem::Topic.where('TRUE = TRUE').by_most_recent_post
+        if @sort == 'popular'
+          if tags.present?
+            @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
+                          .where('forem_topics.id NOT IN (?)',
+                            Forem::TopicTag.select(:topic_id)
+                            .where('forem_topic_tags.tag_id IN (?)', tags) )
+                          .order('views_sum DESC')
+          else
+            @collection = Forem::Topic.select('*, (SELECT SUM(s) FROM UNNEST(views_table) s) as views_sum')
+                          .order('views_sum DESC')
+          end
+        elsif @sort == 'following'
+          @collection = Forem::Topic.where(id: Forem::Subscription.where(subscriber_id: current_user).pluck(:topic_id))
+                        .by_most_recent_post
+        else
+          if tags.present?
+            @collection = Forem::Topic
+                          .where('forem_topics.id NOT IN (?)',
+                            Forem::TopicTag.select(:topic_id)
+                            .where('forem_topic_tags.tag_id IN (?)', tags) )
+                          .by_most_recent_post
+          else
+            @collection = Forem::Topic.where('TRUE = TRUE').by_most_recent_post
+          end
+        end
       end
       @collection = @collection.send(pagination_method, params[pagination_param]).per(Forem.per_page)
     end
