@@ -9,7 +9,7 @@ module Forem
       # If a user cannot be found, then no-op
       # This will happen if the user record has been deleted.
       if subscriber.present?
-        SubscriptionMailer.topic_reply(post_id, subscriber.id).deliver
+        SubscriptionMailer.delay.topic_reply(post_id, subscriber.id)
       end
     end
   end

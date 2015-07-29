@@ -161,10 +161,13 @@ module Forem
     end
 
     def send_email_notifications
-      SubscriptionMailer.delay.topic_reply(@post.id, @post.user.id) if @post.topic.user != current_user && @post.topic.user.reply_email_notification_for_cs && !@post.topic.user.expired?
-                      
-      unless @id.nil?
+          
+      if @id.present?
         user = Post.find(@id).user
+        puts user.id
+        puts  user != current_user
+        puts user.reply_email_notification_for_cs
+        puts !user.expired?
         SubscriptionMailer.delay.comment_reply(@id, user.id) if user != current_user && user.reply_email_notification_for_cs && !user.expired?
       end
     end

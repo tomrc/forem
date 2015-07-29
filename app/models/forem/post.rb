@@ -119,7 +119,7 @@ module Forem
 
     def email_topic_subscribers
       topic.subscriptions.includes(:subscriber).find_each do |subscription|
-        subscription.send_notification(id) if subscription.subscriber != user && subscription.subscriber.public_cs_notification == true
+        subscription.send_notification(id) if subscription.subscriber != user && subscription.subscriber.reply_email_notification_for_cs == true
       end
       update_column(:notified, true)
     end
