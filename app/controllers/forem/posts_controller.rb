@@ -52,8 +52,11 @@ module Forem
           )
           send_email_notifications
           format.js
+          # format.html { redirect_to request.original_url.chomp('/posts'), notice: 'Successfully added post' }
+          format.html { redirect_to forum_topic_path(@post.topic.forum, @post.topic), notice: 'Successfully added post' }
         else
           format.js {render 'create_empty'}
+          format.html { redirect_to root_path, alert: 'Could not create the post' }
         end
       end
     end
